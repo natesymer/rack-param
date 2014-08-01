@@ -2,6 +2,8 @@ require "rack/param/version"
 
 module Rack
   class Request
+    attr_accessor :parameter_errors
+    
     def param(name, type, opts={})
 			_name = name.to_s
       @valid_params ||= []
@@ -22,7 +24,7 @@ module Rack
     end
     
     def handle_errors(&block)
-      block.call @parameter_errors
+      block.call(@parameter_errors) if @parameter_errors.count > 0
     end
   end
   
