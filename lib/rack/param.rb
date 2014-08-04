@@ -1,4 +1,6 @@
-require "rack/param/version"
+#/usr/bin/env ruby
+
+require "rack"
 
 module Rack
   class Request
@@ -12,7 +14,7 @@ module Rack
         :name => _name,
         :value => params.delete(_name),
         :type => type,
-        :opts => opts
+        :conditions => opts
       )
       
       if p.valid?
@@ -38,14 +40,19 @@ module Rack
     class Rule
       def initialize message, &block
         @block = block
+        @message = message
       end
-    
-      def self.rule message, &block
-        new &block
+      
+      class << self
+        def [] message, &block
+          new message, &block
+        end
+        
+        alias_method :rule, :[]
       end
-    
+
       def validate param, value
-        return message.sub("$",param).sub("#",value) if @block.call(param,value)
+        return @message.sub("$",param.to_s).sub("#",value.to_s) unless @block.call(param,value)
       end
     end
     
@@ -54,15 +61,16 @@ module Rack
       
       def initialize(opts={})
 				_opts = opts.dup
+        _opts.merge!(_opts.delete(:conditions))
 				@default = _opts.delete :default
 				@required = _opts.delete :required
 				@transform = _opts.delete :transform
 				@delimiter = _opts.delete(:delimiter) || ","
 				@separator = _opts.delete(:separator) || ":"
-        @name = opts[:name]
-        @type = opts[:type]
-        @value = opts[:value] || @default
-        @errors = process _opts
+        @name = _opts.delete :name
+        @type = _opts.delete :type
+        @value = _opts.delete(:value) || @default
+        @errors = process(_opts)
       end
 
       def valid?
@@ -82,27 +90,25 @@ module Rack
       end
 
       def process opts
-        return nil if default?
-        return (required? ? ["Failed to process #{@name} because it's nil."] : nil) if nil?
+        return [] if default?
+        return (required? ? ["Failed to process #{@name} because it's nil."] : []) if nil?
         
-        begin
-          @value = case @type
-            when Date then Date.parse @value
-            when Time then Time.parse @value
-            when DateTime then DateTime.parse @value
-            when Array then Array @value.split(@delimiter)
-            when Hash then Hash[@value.split(@delimiter).map { |c| c.split @separator }]
-            when Boolean then (FALSE_REGEX.match(@value) ? false : (TRUE_REGEX.match(@value) ? true : raise StandardError, "Invalid boolean"))
-            else
-              method(@type.to_s.to_sym).call @value
-            end
-        rescue StandardError
-          return ["Failed to coerce #{@name}"]
+        unless @value.class == @type
+          begin
+            @value = case @type
+              when Date then Date.parse @value
+              when Time then Time.parse @value
+              when DateTime then DateTime.parse @value
+              when Array then Array @value.split(@delimiter)
+              when Hash then Hash[@value.split(@delimiter).map { |c| c.split @separator, 2 }]
+              when Boolean then (FALSE_REGEX.match(@value) ? false : (TRUE_REGEX.match(@value) ? true : raise(StandardError)))
+              else method(@type.to_s.to_sym).call @value end
+          rescue StandardError
+            return ["Failed to coerce #{@name} into a#{@type.to_s.match(/^[aeiouAEIOU]/) ? "n" : ""} #{@type.to_s}"]
+          end
         end
         
-        return [] if default?
-        selected = all_rules.select { |k,v| opts.include? k }
-        v_errs = opts.map { |k,v| selected[k].validate @value, v }.collect
+        v_errs = opts.map { |k,v| rules[k].validate(@value, v) }.collect
         
         return v_errs if v_errs.count > 0
         
@@ -111,20 +117,21 @@ module Rack
         []
       end
       
-      def all_rules
+      def rules
         @rules ||= {}
         if @rules.empty?
-          @rules[:blank] = Rule.rule "$ cannot be blank." { |p, v| v && !(p.empty? rescue true) }
-          @rules[:greater_than] = Rule.rule "$ can't be less than #." { |p,v| p > v }
-          @rules[:less_than] = Rule.rule "$ can't be greater than #." { |p,v| p < v }
-          @rules[:min] = Rule.rule "$ can't be less than #." { |p,v| p >= v }
-          @rules[:max] = Rule.rule "$ can't be greater than #." { |p,v| p <= v }
-          @rules[:length] = Rule.rule "$ can't be longer or shorter than #." { |p,v| p.length == v }
-          @rules[:min_length] = Rule.rule "$ must be longer than #." { |p,v| p.length >= v }
-          @rules[:max_length] = Rule.rule "$ must be shorter than #." { |p,v| p.length <= v }
-          @rules[:in] = Rule.rule "$ must be within #." { |p,v| v.include? p }
-          @rules[:regex] = Rule.rule "$ failed validation." { |p,v| v.match p }
-          @rules[:validator] = Rule.rule "$ failed validation." { |p,v| v.call p }
+          @rules[:blank] = Rule.rule("$ cannot be blank.") { |p, v| v && !(p.empty? rescue true) }
+          @rules[:greater_than] = Rule.rule("$ can't be less than #.") { |p,v| p > v }
+          @rules[:less_than] = Rule.rule("$ can't be greater than #.") { |p,v| p < v }
+          @rules[:min] = Rule.rule("$ can't be less than #.") { |p,v| p >= v }
+          @rules[:max] = Rule.rule("$ can't be greater than #.") { |p,v| p <= v }
+          @rules[:length] = Rule.rule("$ can't be longer or shorter than #.") { |p,v| p.length == v }
+          @rules[:min_length] = Rule.rule("$ must be longer than #.") { |p,v| p.length >= v }
+          @rules[:max_length] = Rule.rule("$ must be shorter than #.") { |p,v| p.length <= v }
+          @rules[:in] = Rule.rule("$ must be included in #.") { |p,v| v.include? p }
+          @rules[:contains] = Rule.rule("$ must include #") { |p, v| p.include? v }
+          @rules[:regex] = Rule.rule("$ failed validation.") { |p,v| v.match p }
+          @rules[:validator] = Rule.rule("$ failed validation.") { |p,v| v.call p }
         end
         @rules
       end
