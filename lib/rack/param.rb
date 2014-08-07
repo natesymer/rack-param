@@ -1,14 +1,19 @@
 #/usr/bin/env ruby
 
 require "rack"
+require "time"
+require "date"
+
+Boolean = "Boolean" # A boldfaced hack
 
 module Rack
   class Request
-    attr_accessor :parameter_errors
+    attr_reader :parameter_errors, :valid_parameters
     
     def param(name, type, opts={})
 			_name = name.to_s
-      @valid_params ||= []
+      @valid_params ||= {}
+      @parameter_errors ||= []
       
       p = Rack::Param::Parameter.new(
         :name => _name,
@@ -19,6 +24,7 @@ module Rack
       
       if p.valid?
         params[_name] = p.value
+        @valid_params[name] = p.value
       else
         @parameter_errors ||= []
         @parameter_errors.push(*p.errors)
@@ -31,7 +37,6 @@ module Rack
   end
   
   module Param
-    Boolean = TrueClass
     ParameterError = Struct.new :message
     
     TRUE_REGEX = /(true|t|yes|y|1)$/i
@@ -92,18 +97,19 @@ module Rack
       def process opts
         return [] if default?
         return (required? ? ["Failed to process #{@name} because it's nil."] : []) if nil?
-        
+
         unless @value.class == @type
           begin
-            @value = case @type
-              when Date then Date.parse @value
-              when Time then Time.parse @value
-              when DateTime then DateTime.parse @value
-              when Array then Array @value.split(@delimiter)
-              when Hash then Hash[@value.split(@delimiter).map { |c| c.split @separator, 2 }]
-              when Boolean then (FALSE_REGEX.match(@value) ? false : (TRUE_REGEX.match(@value) ? true : raise(StandardError)))
+            @value = case @type.to_s.downcase.to_sym
+              when :date then Date.parse @value
+              when :time then Time.parse @value
+              when :datetime then DateTime.parse @value
+              when :array then @value.split(@delimiter)
+              when :hash then Hash[@value.split(@delimiter).map { |c| c.split @separator, 2 }]
+              when :boolean then (FALSE_REGEX.match(@value) ? false : (TRUE_REGEX.match(@value) ? true : raise(StandardError)))
               else method(@type.to_s.to_sym).call @value end
-          rescue StandardError
+          rescue StandardError => e
+            raise e
             return ["Failed to coerce #{@name} into a#{@type.to_s.match(/^[aeiouAEIOU]/) ? "n" : ""} #{@type.to_s}"]
           end
         end
