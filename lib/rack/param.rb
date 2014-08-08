@@ -10,7 +10,7 @@ module Rack
   class Request
     attr_reader :parameter_errors, :valid_parameters
     
-    def param(name, type, opts={})
+    def param name, type, opts={}
 			_name = name.to_s
       @valid_params ||= {}
       @parameter_errors ||= []
@@ -29,6 +29,10 @@ module Rack
         @parameter_errors ||= []
         @parameter_errors.push(*p.errors)
       end
+    end
+    
+    def param_error &block
+      @param_err_block = block
     end
     
     def handle_errors(&block)
@@ -114,7 +118,7 @@ module Rack
           end
         end
         
-        v_errs = opts.map { |k,v| rules[k].validate(@value, v) }.collect
+        v_errs = opts.map { |k,v| rules[k].validate(@value, v) }.compact
         
         return v_errs if v_errs.count > 0
         
@@ -126,7 +130,7 @@ module Rack
       def rules
         @rules ||= {}
         if @rules.empty?
-          @rules[:blank] = Rule.rule("$ cannot be blank.") { |p, v| v && !(p.empty? rescue true) }
+          @rules[:blank] = Rule.rule("$ cannot be blank.") { |p,v| v == (p.empty? rescue false) }
           @rules[:greater_than] = Rule.rule("$ can't be less than #.") { |p,v| p > v }
           @rules[:less_than] = Rule.rule("$ can't be greater than #.") { |p,v| p < v }
           @rules[:min] = Rule.rule("$ can't be less than #.") { |p,v| p >= v }
@@ -135,7 +139,7 @@ module Rack
           @rules[:min_length] = Rule.rule("$ must be longer than #.") { |p,v| p.length >= v }
           @rules[:max_length] = Rule.rule("$ must be shorter than #.") { |p,v| p.length <= v }
           @rules[:in] = Rule.rule("$ must be included in #.") { |p,v| v.include? p }
-          @rules[:contains] = Rule.rule("$ must include #") { |p, v| p.include? v }
+          @rules[:contains] = Rule.rule("$ must include #") { |p,v| p.include? v }
           @rules[:regex] = Rule.rule("$ failed validation.") { |p,v| v.match p }
           @rules[:validator] = Rule.rule("$ failed validation.") { |p,v| v.call p }
         end
