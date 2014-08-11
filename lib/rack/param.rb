@@ -30,7 +30,7 @@ module Rack
       
       p = Rack::Parameter.new(
         :name => _name,
-        :value => params_original[_name],
+        :value => params_original[_name], # TODO: read from params if not found in original_params. It allows for multiple parameter rules
         :type => type,
         :conditions => opts
       )
