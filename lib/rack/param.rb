@@ -8,12 +8,12 @@ Boolean = "Boolean" # A boldfaced hack
 
 module Rack
   class Request
-    attr_reader :parameter_errors, :valid_parameters
+    ParameterError = Class.new StandardError
     
     def param name, type, opts={}
+      @processed_params = nil # Make params() recalculate valid parameters
+      @valid_params ||= []
 			_name = name.to_s
-      @valid_params ||= {}
-      @parameter_errors ||= []
       
       p = Rack::Param::Parameter.new(
         :name => _name,
@@ -22,29 +22,33 @@ module Rack
         :conditions => opts
       )
       
-      if p.valid?
-        params[_name] = p.value
-        @valid_params[name] = p.value
-      else
-        @parameter_errors ||= []
-        @parameter_errors.push(*p.errors)
+      raise ParameterError, p.error unless p.valid?
+      
+      params[_name] = p.value
+      @valid_params << name
+    end
+    
+    alias_method :params_original, :params
+    
+    def params
+      if @processed_params.nil?
+        s = params_original()
+        @processed_params = s.select { |k,v| @valid_params.include? k }
       end
-    end
-    
-    def param_error &block
-      @param_err_block = block
-    end
-    
-    def handle_errors(&block)
-      block.call(@parameter_errors) if @parameter_errors.count > 0
+      @processed_params
     end
   end
   
   module Param
-    ParameterError = Struct.new :message
-    
-    TRUE_REGEX = /(true|t|yes|y|1)$/i
-    FALSE_REGEX = /(false|f|no|n|0)$/i
+    class String
+      def truthy?
+        /^(true|t|yes|y|1|on)$/ =~ dowcase
+      end
+      
+      def falsey?
+        /^(false|f|no|n|0|off)$/ =~ downcase
+      end
+    end
     
     class Rule
       def initialize message, &block
@@ -52,12 +56,8 @@ module Rack
         @message = message
       end
       
-      class << self
-        def [] message, &block
-          new message, &block
-        end
-        
-        alias_method :rule, :[]
+      def self.rule message, &block
+        new message, &block
       end
 
       def validate param, value
@@ -66,7 +66,7 @@ module Rack
     end
     
     class Parameter
-      attr_reader :errors, :value
+      attr_reader :error, :value
       
       def initialize(opts={})
 				_opts = opts.dup
@@ -79,11 +79,11 @@ module Rack
         @name = _opts.delete :name
         @type = _opts.delete :type
         @value = _opts.delete(:value) || @default
-        @errors = process(_opts)
+        @error = process(_opts) unless default?
       end
 
       def valid?
-        @errors.count == 0
+        @error.nil?# || @error.empty?
       end
       
 			def default?
@@ -99,9 +99,8 @@ module Rack
       end
 
       def process opts
-        return [] if default?
-        return (required? ? ["Failed to process #{@name} because it's nil."] : []) if nil?
-
+        return "Parameter #{@name} is required." if @value.nil? && required?
+        
         unless @value.class == @type
           begin
             @value = case @type.to_s.downcase.to_sym
@@ -110,21 +109,19 @@ module Rack
               when :datetime then DateTime.parse @value
               when :array then @value.split(@delimiter)
               when :hash then Hash[@value.split(@delimiter).map { |c| c.split @separator, 2 }]
-              when :boolean then (FALSE_REGEX.match(@value) ? false : (TRUE_REGEX.match(@value) ? true : raise(StandardError)))
+              when :boolean then (@value.falsey? ? false : @value.truthy? ? true : raise(StandardError))
               else method(@type.to_s.to_sym).call @value end
           rescue StandardError => e
-            raise e
-            return ["Failed to coerce #{@name} into a#{@type.to_s.match(/^[aeiouAEIOU]/) ? "n" : ""} #{@type.to_s}"]
+            puts e.message
+            return "Failed to coerce #{@name} into a#{@type.to_s.match(/^[aeiouAEIOU]/) ? "n" : ""} #{@type.to_s}"
           end
         end
         
-        v_errs = opts.map { |k,v| rules[k].validate(@value, v) }.compact
-        
-        return v_errs if v_errs.count > 0
+        validate_error = opts.detect { |k,v| rules[k].validate @value, v }
+        return validate_error unless validate_error.nil?
         
         @value = @transform.to_proc.call @value if @transform
-        
-        []
+        nil
       end
       
       def rules
