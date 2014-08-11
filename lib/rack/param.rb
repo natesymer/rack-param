@@ -6,47 +6,38 @@ require "date"
 
 Boolean = "Boolean" # A boldfaced hack
 
-class String
-  def truthy?
-    (/^(true|t|yes|y|1|on)$/ =~ downcase) != nil
-  end
-  
-  def falsey?
-    (/^(false|f|no|n|0|off)$/ =~ downcase) != nil
-  end
-end
-
 module Rack
   ParameterError = Class.new StandardError
+  
+  class ::String
+    def truthy?
+      (/^(true|t|yes|y|1|on)$/ =~ downcase) != nil
+    end
+
+    def falsey?
+      (/^(false|f|no|n|0|off)$/ =~ downcase) != nil
+    end
+  end
+  
   class Request
+    alias_method :params_original, :params
+    def params
+      @processed_parameters ||= {}
+    end
+    
     def param name, type, opts={}
-      @processed_params = nil # Make params() recalculate valid parameters
-      @valid_params ||= []
 			_name = name.to_s
       
       p = Rack::Parameter.new(
         :name => _name,
-        :value => params.delete(_name),
+        :value => params_original[_name],
         :type => type,
         :conditions => opts
       )
       
       raise ParameterError, p.error unless p.valid?
-      
       params[_name] = p.value
-      @valid_params << name
     end
-    
-    alias_method :params_original, :params
-=begin 
-    def params
-      if @processed_params.nil?
-        s = params_original()
-        @processed_params = s.select { |k,v| @valid_params.include? k }
-      end
-      @processed_params
-    end
-=end
   end
   
   class Parameter
@@ -68,6 +59,7 @@ module Rack
     end
     
     def initialize(opts={})
+      opts[:value].inspect
 			_opts = Hash[opts.dup.map { |k,v| [k.to_sym,v] }]
       _opts.merge! _opts.delete(:conditions)
 			@default = _opts.delete :default
