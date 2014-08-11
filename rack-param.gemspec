@@ -1,16 +1,15 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'rack/param/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "rack-param"
-  spec.version       = "0.0.1"
+  spec.version       = "0.1.0"
   spec.authors       = ["Nathaniel Symer"]
   spec.email         = ["nate@natesymer.com"]
-  spec.summary       = %q{TODO: Write a short summary. Required.}
-  spec.description   = %q{TODO: Write a longer description. Optional.}
-  spec.homepage      = ""
+  spec.summary       = "Sane parameter validation for Rack::Request."
+  spec.description   = spec.summary + " Originally written for use with Sansom."
+  spec.homepage      = "https://github.com/sansomrb/rack-param"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0")

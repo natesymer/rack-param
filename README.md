@@ -1,6 +1,6 @@
 # Rack::Param
 
-Parameter checking and validation for `Rack::Request`. Originally designed to work with [`Sansom`](http://github.com/fhsjaagshs/fhsjaagshs) or [`Rack`](http://github.com/rack/rack).
+Parameter checking and validation for `Rack::Request`. Originally designed to be used with [`Sansom`](http://github.com/fhsjaagshs/fhsjaagshs), but it also works with [`Rack`](http://github.com/rack/rack).
 
 ## Installation
 
@@ -22,6 +22,12 @@ Or install it through `gem`:
     
     r = Rack::Request env # pass your env
     r.param :param_name, Integer, :required => true ...
+    
+Now, `r.params` should contain a single entry:
+    
+    { :param_name => <some Integer> }
+    
+`Rack::Param` patches `Rack::Request#params` to contain only the validated parameters, in coerced form.
 
 Here's a list of options:
 
