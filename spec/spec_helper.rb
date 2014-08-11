@@ -2,10 +2,10 @@
 
 require "rspec"
 
-require_relative File.dirname(File.dirname(__FILE__)) + "/lib/rack/param.rb"
-require "rack"
-
 module TestHelpers
+  require_relative File.dirname(File.dirname(__FILE__)) + "/lib/rack/param.rb"
+  
+  require "rack"
   require "cgi"
   require "stringio"
   
@@ -28,4 +28,9 @@ end
 
 RSpec.configure do |c|
   c.include TestHelpers
+  
+  c.before :each do
+    @p ||= {}
+    @r = Rack::Request.new env(@p.dup)
+  end
 end
