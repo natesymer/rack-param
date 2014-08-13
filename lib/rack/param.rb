@@ -54,7 +54,7 @@ module Rack
       end
 
       def validate param, value
-        return @message.sub("$",param.to_s).sub("#",value.to_s) unless @block.call(param,value)
+        return @message.sub("$", "`#{param.to_s}`").sub("#","`#{value.to_s}`") unless @block.call(param,value)
       end
     end
     
@@ -107,7 +107,7 @@ module Rack
         end
       end
       
-      validate_error = opts.detect { |k,v| rules[k].validate @value, v }
+      validate_error = opts.detect { |k,v| break rules[k].validate(@value, v) }
       return validate_error unless validate_error.nil?
       
       @value = @transform.to_proc.call @value if @transform
@@ -127,7 +127,7 @@ module Rack
         @rules[:max_length] = Rule.rule("$ must be shorter than #.") { |p,v| p.length <= v }
         @rules[:in] = Rule.rule("$ must be included in #.") { |p,v| v.include? p }
         @rules[:contains] = Rule.rule("$ must include #") { |p,v| p.include? v }
-        @rules[:regex] = Rule.rule("$ failed validation.") { |p,v| v.match p }
+        @rules[:regex] = Rule.rule("$ failed validation.") { |p,v| v.match(p) rescue false }
         @rules[:validator] = Rule.rule("$ failed validation.") { |p,v| v.call p }
       end
       @rules
