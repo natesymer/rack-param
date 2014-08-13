@@ -14,3 +14,7 @@ v 0.1.0
 v 0.1.1
 
 - Fix bug where invalid error message would be returned
+
+v 0.1.2
+
+- `:error_message` option
