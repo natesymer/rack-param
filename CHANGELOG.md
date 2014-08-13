@@ -18,3 +18,7 @@ v 0.1.1
 v 0.1.2
 
 - `:error_message` option
+
+v 0.1.3
+
+- Fixed show-stopping typo

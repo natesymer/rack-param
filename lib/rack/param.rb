@@ -109,7 +109,7 @@ module Rack
       end
       
       validate_error = opts.detect { |k,v| break rules[k].validate @value, v, @error_message }
-      return validate_errorunless validate_error.nil?
+      return validate_error unless validate_error.nil?
       
       @value = @transform.to_proc.call @value if @transform
       nil
