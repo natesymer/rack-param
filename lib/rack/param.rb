@@ -53,8 +53,8 @@ module Rack
         new message, &block
       end
 
-      def validate param, value
-        return @message.sub("$", "`#{param.to_s}`").sub("#","`#{value.to_s}`") unless @block.call(param,value)
+      def validate param, value, error_msg=nil
+        return (error_msg || @message).sub('$',"`#{param.to_s}`").sub('#',"`#{value.to_s}`") unless @block.call(param,value)
       end
     end
     
@@ -62,6 +62,7 @@ module Rack
       opts[:value].inspect
 			_opts = Hash[opts.dup.map { |k,v| [k.to_sym,v] }]
       _opts.merge! _opts.delete(:conditions)
+      @error_message = opts.delete :error_message
 			@default = _opts.delete :default
 			@required = _opts.delete :required
 			@transform = _opts.delete :transform
@@ -107,8 +108,8 @@ module Rack
         end
       end
       
-      validate_error = opts.detect { |k,v| break rules[k].validate(@value, v) }
-      return validate_error unless validate_error.nil?
+      validate_error = opts.detect { |k,v| break rules[k].validate @value, v, @error_message }
+      return validate_errorunless validate_error.nil?
       
       @value = @transform.to_proc.call @value if @transform
       nil

@@ -43,6 +43,7 @@ Here's a list of options:
 `:in` => Something that responds to `include?`<br />
 `:regex` => A `Regexp`<br />
 `:validator` => A block: `{ |param| true }`<br />
+`:error_message` => A `String`. `$` is the parameter and `#` is the validator object. (`"Invalid password: $"`)
 
 ## Contributing
 
