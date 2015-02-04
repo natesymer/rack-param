@@ -22,3 +22,7 @@ v 0.1.2
 v 0.1.3
 
 - Fixed show-stopping typo
+
+v 0.1.4
+
+- Fixed a typo that would prevent custom error messages from working.

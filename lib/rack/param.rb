@@ -62,7 +62,7 @@ module Rack
       opts[:value].inspect
 			_opts = Hash[opts.dup.map { |k,v| [k.to_sym,v] }]
       _opts.merge! _opts.delete(:conditions)
-      @error_message = opts.delete :error_message
+      @error_message = _opts.delete :error_message
 			@default = _opts.delete :default
 			@required = _opts.delete :required
 			@transform = _opts.delete :transform
@@ -93,7 +93,12 @@ module Rack
     def process opts
       return "Parameter #{@name} is required." if @value.nil? && required?
       
-      unless @value.class == @type
+      require "pry"
+      binding.pry
+      
+      puts "VALUE for (#{@name}): " + @value.inspect
+      
+      unless @value.class == @type || @value.nil?
         begin
           @value = case @type.to_s.downcase.to_sym
             when :date then Date.parse @value
