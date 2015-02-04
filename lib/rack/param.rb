@@ -28,15 +28,17 @@ module Rack
     def param name, type, opts={}
 			_name = name.to_s
       
-      p = Rack::Parameter.new(
-        :name => _name,
-        :value => params_original[_name] || params[_name],
-        :type => type,
-        :conditions => opts
-      )
+      if params_original.member? _name
+        p = Rack::Parameter.new(
+          :name => _name,
+          :value => params_original[_name] || params[_name],
+          :type => type,
+          :conditions => opts
+        )
       
-      raise ParameterError, p.error unless p.valid?
-      params[_name] = p.value
+        raise ParameterError, p.error unless p.valid?
+        params[_name] = p.value
+      end
     end
   end
   
@@ -92,9 +94,6 @@ module Rack
 
     def process opts
       return "Parameter #{@name} is required." if @value.nil? && required?
-      
-      require "pry"
-      binding.pry
       
       puts "VALUE for (#{@name}): " + @value.inspect
       
