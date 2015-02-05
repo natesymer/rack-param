@@ -95,8 +95,6 @@ module Rack
     def process opts
       return "Parameter #{@name} is required." if @value.nil? && required?
       
-      puts "VALUE for (#{@name}): " + @value.inspect
-      
       unless @value.class == @type || @value.nil?
         begin
           @value = case @type.to_s.downcase.to_sym
