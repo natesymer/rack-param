@@ -31,6 +31,7 @@ Now, `r.params` should contain a single entry:
 
 Here's a list of options:
 
+`:coerce` => `true`/`false` (defaults to `true`, if false, type coercion will be skipped)<br />
 `:required` => `true`/`false`<br />
 `:blank` => `true`/`false`<br />
 `:greater_than` => Any `Numeric`<br />

@@ -23,13 +23,8 @@ module Rack
   ParameterError = Class.new StandardError
   
   class ::String
-    def truthy?
-      (/^(true|t|yes|y|1|on)$/ =~ downcase) != nil
-    end
-
-    def falsey?
-      (/^(false|f|no|n|0|off)$/ =~ downcase) != nil
-    end
+    def truthy?; (/^(true|t|yes|y|1|on)$/ =~ downcase) != nil; end
+    def falsey?; (/^(false|f|no|n|0|off)$/ =~ downcase) != nil; end
   end
   
   class Request
@@ -98,13 +93,9 @@ module Rack
 		def default?
 			@default == @value && !@value.nil?
 		end
-		
-    def nil?
-      @value.nil?
-    end
 
     def process opts
-      unless @value.class == @type || @value.nil?
+      unless @type === @value
         begin
           @value = case @type.to_s.downcase.to_sym
             when :date     then Date.parse @value
