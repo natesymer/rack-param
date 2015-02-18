@@ -17,7 +17,7 @@ describe Rack::Parameter do
   
   context "when given rules" do
     it "checks a parameter based on :required" do
-      expect { @r.param :not_a_param, String, :required => true }.to raise_error(Rack::ParameterError)
+      expect { @r.param :not_a_param_asdfasdfasdfasdf, String, :required => true }.to raise_error(Rack::ParameterError)
       expect { @r.param :required, String, :required => true }.to_not raise_error
     end
     
