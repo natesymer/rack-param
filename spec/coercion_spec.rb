@@ -2,7 +2,7 @@
 
 require_relative "./spec_helper.rb"
 
-describe Rack::Parameter do
+describe Rack::Request do
   before :all do
     @p = {
       :date => "2014/8/4",

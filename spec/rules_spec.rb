@@ -2,7 +2,7 @@
 
 require_relative "./spec_helper.rb"
 
-describe Rack::Parameter do
+describe Rack::Rule do
   before :all do
     @p = {
       :int_three => "3",
