@@ -163,6 +163,17 @@ Have a custom type that you want to be able to coerce a value? Write a function 
       # turn str into a `Money` and return it
     end
 
+Custom Rules
+-
+
+You can create custom rules! This is done by adding `Rule` objects to the `Hash` `Rack::Request.rules`.
+
+    # the error message (first arg of Rack::Rule.rule)
+    # is in the same format as the option :error_message above
+    Rack::Request.rules[:something] = Rack::Rule.rule "error message" do |parameter, argument| 
+      # return true or false
+    end
+
 Contributing
 -
 
